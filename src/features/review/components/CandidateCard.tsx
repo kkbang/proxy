@@ -1,5 +1,6 @@
 import { ExpandableCodeBlock } from "../../../components/ExpandableCodeBlock";
 import { formatRiskLabel } from "../../../lib/risk";
+import { validateGitHubRepoUrl } from "../repoUrl";
 import type { ReviewCandidate } from "../types";
 
 interface CandidateCardProps {
@@ -7,16 +8,31 @@ interface CandidateCardProps {
 }
 
 export function CandidateCard({ candidate }: CandidateCardProps) {
+  const candidateRepoUrlValidation = validateGitHubRepoUrl(candidate.repository.repo_url);
+
   return (
     <article className="candidate-card">
       <header className="card-header">
         <div>
           <p className="eyebrow">Candidate match</p>
           <h4>
-            <a href={candidate.repository.repo_url} target="_blank" rel="noreferrer">
-              {candidate.repository.repo_url}
-            </a>
+            {candidateRepoUrlValidation.isValid ? (
+              <a
+                href={candidateRepoUrlValidation.normalizedUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+              >
+                {candidateRepoUrlValidation.normalizedUrl}
+              </a>
+            ) : (
+              <span className="unsafe-link-text">{candidate.repository.repo_url}</span>
+            )}
           </h4>
+          {!candidateRepoUrlValidation.isValid ? (
+            <p className="unsafe-link-note">
+              Link disabled because the backend returned an unverified repository URL.
+            </p>
+          ) : null}
         </div>
         <div className={`risk-badge risk-badge--${candidate.risk.level}`}>
           <span>{formatRiskLabel(candidate.risk.level)}</span>

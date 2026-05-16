@@ -8,10 +8,12 @@ export interface ReviewFormValues extends ReviewRequest {
 interface ReviewFormProps {
   values: ReviewFormValues;
   isLoading: boolean;
+  repoUrlError: string | null;
   onChange: <Key extends keyof ReviewFormValues>(
     field: Key,
     value: ReviewFormValues[Key],
   ) => void;
+  onRepoUrlBlur: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
@@ -33,7 +35,9 @@ const NUMERIC_FIELDS: NumericRetrievalField[] = [
 export function ReviewForm({
   values,
   isLoading,
+  repoUrlError,
   onChange,
+  onRepoUrlBlur,
   onSubmit,
 }: ReviewFormProps) {
   return (
@@ -48,13 +52,25 @@ export function ReviewForm({
             inputMode="url"
             placeholder="https://github.com/owner/repo"
             value={values.repo_url}
+            aria-invalid={Boolean(repoUrlError)}
+            aria-describedby={repoUrlError ? "repo_url_help repo_url_error" : "repo_url_help"}
             onChange={(event) => onChange("repo_url", event.target.value)}
+            onBlur={onRepoUrlBlur}
             required
           />
-          <button type="submit" disabled={isLoading}>
+          <button type="submit" disabled={isLoading || Boolean(repoUrlError)}>
             {isLoading ? "Analyzing..." : "Analyze"}
           </button>
         </div>
+        <p id="repo_url_help" className="field-help">
+          Only HTTPS GitHub repository root URLs are allowed. Query strings, fragments,
+          credentials, custom ports, and nested paths are rejected.
+        </p>
+        {repoUrlError ? (
+          <p id="repo_url_error" className="field-error" role="alert">
+            {repoUrlError}
+          </p>
+        ) : null}
       </div>
 
       <details className="advanced-options">

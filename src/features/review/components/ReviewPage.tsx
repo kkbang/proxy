@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { StatusBanner } from "../../../components/StatusBanner";
 import { fetchReviewByRepoUrl, getDefaultFixtureMode } from "../api";
+import { validateGitHubRepoUrl } from "../repoUrl";
 import {
   DEFAULT_RETRIEVAL_OPTIONS,
   ReviewApiError,
@@ -24,18 +25,12 @@ const DEFAULT_FORM_VALUES: ReviewFormValues = {
   use_fixture_data: getDefaultFixtureMode(),
 };
 
-function isProbablyGitHubRepoUrl(value: string) {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol.startsWith("http") && parsed.hostname === "github.com";
-  } catch {
-    return false;
-  }
-}
-
-function buildRequest(values: ReviewFormValues): ReviewRequest {
+function buildRequest(values: ReviewFormValues, normalizedRepoUrl: string): ReviewRequest {
   const { use_fixture_data: _ignored, ...request } = values;
-  return request;
+  return {
+    ...request,
+    repo_url: normalizedRepoUrl,
+  };
 }
 
 function getEmptyStateMessage(response: ReviewResponse) {
@@ -57,6 +52,8 @@ function getEmptyStateMessage(response: ReviewResponse) {
 export function ReviewPage() {
   const [formValues, setFormValues] = useState<ReviewFormValues>(DEFAULT_FORM_VALUES);
   const [viewState, setViewState] = useState<ViewState>({ status: "idle" });
+  const repoUrlValidation = validateGitHubRepoUrl(formValues.repo_url);
+  const repoUrlError = repoUrlValidation.isValid ? null : repoUrlValidation.message;
 
   const activeResponse =
     viewState.status === "success" || viewState.status === "empty" ? viewState.response : null;
@@ -75,24 +72,49 @@ export function ReviewPage() {
     }));
   };
 
+  const handleRepoUrlBlur = () => {
+    if (!repoUrlValidation.isValid) {
+      return;
+    }
+
+    if (repoUrlValidation.normalizedUrl === formValues.repo_url) {
+      return;
+    }
+
+    setFormValues((current) => ({
+      ...current,
+      repo_url: repoUrlValidation.normalizedUrl,
+    }));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!isProbablyGitHubRepoUrl(formValues.repo_url)) {
+    if (!repoUrlValidation.isValid) {
       setViewState({
         status: "error",
-        title: "Backend validation error",
-        detail: "Enter a valid GitHub repository URL before submitting the review request.",
+        title: "Security validation failed",
+        detail: repoUrlValidation.message,
       });
       return;
+    }
+
+    if (repoUrlValidation.normalizedUrl !== formValues.repo_url) {
+      setFormValues((current) => ({
+        ...current,
+        repo_url: repoUrlValidation.normalizedUrl,
+      }));
     }
 
     setViewState({ status: "loading" });
 
     try {
-      const response = await fetchReviewByRepoUrl(buildRequest(formValues), {
+      const response = await fetchReviewByRepoUrl(
+        buildRequest(formValues, repoUrlValidation.normalizedUrl),
+        {
         forceFixture: formValues.use_fixture_data,
-      });
+        },
+      );
 
       if (response.findings.length === 0) {
         setViewState({
@@ -149,7 +171,9 @@ export function ReviewPage() {
       <ReviewForm
         values={formValues}
         isLoading={viewState.status === "loading"}
+        repoUrlError={repoUrlError}
         onChange={handleFieldChange}
+        onRepoUrlBlur={handleRepoUrlBlur}
         onSubmit={handleSubmit}
       />
 

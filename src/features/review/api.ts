@@ -1,5 +1,6 @@
 import { mockReviewResponse } from "../../fixtures/mockReviewResponse";
 import { sortCandidatesByRisk, sortFindingsByRisk } from "../../lib/risk";
+import { validateGitHubRepoUrl } from "./repoUrl";
 import {
   ReviewApiError,
   type ReviewCandidate,
@@ -111,7 +112,17 @@ export async function fetchReviewByRepoUrl(
   request: ReviewRequest,
   options?: { signal?: AbortSignal; forceFixture?: boolean },
 ) {
+  const repoUrlValidation = validateGitHubRepoUrl(request.repo_url);
+
+  if (!repoUrlValidation.isValid) {
+    throw new ReviewApiError("validation", repoUrlValidation.message);
+  }
+
   const useFixtureData = options?.forceFixture ?? shouldUseFixtureData();
+  const sanitizedRequest = {
+    ...request,
+    repo_url: repoUrlValidation.normalizedUrl,
+  };
 
   if (useFixtureData) {
     return normalizeResponse(mockReviewResponse);
@@ -127,7 +138,7 @@ export async function fetchReviewByRepoUrl(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(sanitizedRequest),
       signal: options?.signal,
     });
   } catch (error) {
