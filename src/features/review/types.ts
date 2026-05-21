@@ -84,6 +84,7 @@ export interface ReviewResponse {
 }
 
 export type ReviewErrorKind =
+  | "configuration"
   | "validation"
   | "network"
   | "backend"

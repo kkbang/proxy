@@ -120,7 +120,9 @@ export function ReviewPage() {
     } catch (error) {
       if (error instanceof ReviewApiError) {
         const title =
-          error.kind === "validation"
+          error.kind === "configuration"
+            ? "API configuration error"
+            : error.kind === "validation"
             ? "Backend validation error"
             : error.kind === "malformed-response"
               ? "Malformed response error"
