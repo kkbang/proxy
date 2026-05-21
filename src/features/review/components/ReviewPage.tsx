@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { StatusBanner } from "../../../components/StatusBanner";
-import { fetchReviewByRepoUrl, getDefaultFixtureMode } from "../api";
+import { fetchReviewByRepoUrl } from "../api";
 import { validateGitHubRepoUrl } from "../repoUrl";
 import {
   DEFAULT_RETRIEVAL_OPTIONS,
@@ -15,20 +15,18 @@ import { SummaryBand } from "./SummaryBand";
 type ViewState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; response: ReviewResponse; isFixture: boolean }
-  | { status: "empty"; response: ReviewResponse; isFixture: boolean }
+  | { status: "success"; response: ReviewResponse }
+  | { status: "empty"; response: ReviewResponse }
   | { status: "error"; title: string; detail: string };
 
 const DEFAULT_FORM_VALUES: ReviewFormValues = {
   repo_url: "https://github.com/acme/internal-query-engine",
   ...DEFAULT_RETRIEVAL_OPTIONS,
-  use_fixture_data: getDefaultFixtureMode(),
 };
 
 function buildRequest(values: ReviewFormValues, normalizedRepoUrl: string): ReviewRequest {
-  const { use_fixture_data: _ignored, ...request } = values;
   return {
-    ...request,
+    ...values,
     repo_url: normalizedRepoUrl,
   };
 }
@@ -57,10 +55,6 @@ export function ReviewPage() {
 
   const activeResponse =
     viewState.status === "success" || viewState.status === "empty" ? viewState.response : null;
-
-  const isFixture = viewState.status === "success" || viewState.status === "empty"
-    ? viewState.isFixture
-    : formValues.use_fixture_data;
 
   const handleFieldChange = <Key extends keyof ReviewFormValues>(
     field: Key,
@@ -109,18 +103,12 @@ export function ReviewPage() {
     setViewState({ status: "loading" });
 
     try {
-      const response = await fetchReviewByRepoUrl(
-        buildRequest(formValues, repoUrlValidation.normalizedUrl),
-        {
-        forceFixture: formValues.use_fixture_data,
-        },
-      );
+      const response = await fetchReviewByRepoUrl(buildRequest(formValues, repoUrlValidation.normalizedUrl));
 
       if (response.findings.length === 0) {
         setViewState({
           status: "empty",
           response,
-          isFixture: formValues.use_fixture_data,
         });
         return;
       }
@@ -128,7 +116,6 @@ export function ReviewPage() {
       setViewState({
         status: "success",
         response,
-        isFixture: formValues.use_fixture_data,
       });
     } catch (error) {
       if (error instanceof ReviewApiError) {
@@ -181,7 +168,7 @@ export function ReviewPage() {
         <StatusBanner
           title="Ready for analysis"
           tone="neutral"
-          detail="Start with fixture data for UI development, or disable fixture mode to call the backend endpoint directly."
+          detail="Submit a GitHub repository URL to call the backend retrieval API and load live review findings."
         />
       ) : null}
 
@@ -190,6 +177,7 @@ export function ReviewPage() {
           title="Running repository analysis"
           tone="neutral"
           detail="Waiting for retrieval results and license review candidates."
+          isLoading
         />
       ) : null}
 
@@ -197,7 +185,7 @@ export function ReviewPage() {
         <StatusBanner title={viewState.title} tone="error" detail={viewState.detail} />
       ) : null}
 
-      {activeResponse ? <SummaryBand response={activeResponse} isFixture={isFixture} /> : null}
+      {activeResponse ? <SummaryBand response={activeResponse} /> : null}
 
       {viewState.status === "empty" ? (
         <StatusBanner

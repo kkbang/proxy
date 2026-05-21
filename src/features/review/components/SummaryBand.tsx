@@ -3,12 +3,11 @@ import type { ReviewResponse, RiskLevel } from "../types";
 
 interface SummaryBandProps {
   response: ReviewResponse;
-  isFixture: boolean;
 }
 
 const SUMMARY_LEVELS: RiskLevel[] = ["critical", "high", "medium"];
 
-export function SummaryBand({ response, isFixture }: SummaryBandProps) {
+export function SummaryBand({ response }: SummaryBandProps) {
   return (
     <section className="summary-band">
       <div className="summary-band__header">
@@ -18,7 +17,7 @@ export function SummaryBand({ response, isFixture }: SummaryBandProps) {
         </div>
         <div className="summary-meta">
           <span>{response.analyzed_source_count} source chunks analyzed</span>
-          <span>{isFixture ? "Fixture data" : "Backend response"}</span>
+          <span>Backend response</span>
         </div>
       </div>
 

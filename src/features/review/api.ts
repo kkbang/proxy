@@ -1,4 +1,3 @@
-import { mockReviewResponse } from "../../fixtures/mockReviewResponse";
 import { sortCandidatesByRisk, sortFindingsByRisk } from "../../lib/risk";
 import { validateGitHubRepoUrl } from "./repoUrl";
 import {
@@ -12,14 +11,6 @@ import {
 function getApiBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL?.trim();
   return configured ? configured.replace(/\/$/, "") : "";
-}
-
-function shouldUseFixtureData() {
-  return import.meta.env.VITE_USE_FIXTURE_DATA === "true";
-}
-
-export function getDefaultFixtureMode() {
-  return shouldUseFixtureData() || (import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -110,7 +101,7 @@ async function parseError(response: Response) {
 
 export async function fetchReviewByRepoUrl(
   request: ReviewRequest,
-  options?: { signal?: AbortSignal; forceFixture?: boolean },
+  options?: { signal?: AbortSignal },
 ) {
   const repoUrlValidation = validateGitHubRepoUrl(request.repo_url);
 
@@ -118,15 +109,10 @@ export async function fetchReviewByRepoUrl(
     throw new ReviewApiError("validation", repoUrlValidation.message);
   }
 
-  const useFixtureData = options?.forceFixture ?? shouldUseFixtureData();
   const sanitizedRequest = {
     ...request,
     repo_url: repoUrlValidation.normalizedUrl,
   };
-
-  if (useFixtureData) {
-    return normalizeResponse(mockReviewResponse);
-  }
 
   const endpoint = `${getApiBaseUrl()}/retrieve/hybrid/by-repo-url`;
 
@@ -148,7 +134,7 @@ export async function fetchReviewByRepoUrl(
 
     throw new ReviewApiError(
       "network",
-      "The review request could not reach the backend. Check the API base URL or switch to fixture mode.",
+      "The review request could not reach the backend. Check that the API server is running and VITE_API_BASE_URL is set correctly.",
     );
   }
 

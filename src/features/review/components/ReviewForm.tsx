@@ -1,9 +1,7 @@
 import type { FormEvent } from "react";
 import { DEFAULT_RETRIEVAL_OPTIONS, type ReviewRequest } from "../types";
 
-export interface ReviewFormValues extends ReviewRequest {
-  use_fixture_data: boolean;
-}
+export type ReviewFormValues = ReviewRequest;
 
 interface ReviewFormProps {
   values: ReviewFormValues;
@@ -59,7 +57,14 @@ export function ReviewForm({
             required
           />
           <button type="submit" disabled={isLoading || Boolean(repoUrlError)}>
-            {isLoading ? "Analyzing..." : "Analyze"}
+            {isLoading ? (
+              <>
+                <span className="button-spinner" aria-hidden="true" />
+                <span>Analyzing...</span>
+              </>
+            ) : (
+              "Analyze"
+            )}
           </button>
         </div>
         <p id="repo_url_help" className="field-help">
@@ -105,15 +110,6 @@ export function ReviewForm({
               onChange={(event) => onChange("skip_validation", event.target.checked)}
             />
             <span>Skip backend validation</span>
-          </label>
-
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={values.use_fixture_data}
-              onChange={(event) => onChange("use_fixture_data", event.target.checked)}
-            />
-            <span>Use local fixture response</span>
           </label>
         </div>
       </details>
