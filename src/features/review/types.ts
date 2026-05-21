@@ -1,7 +1,6 @@
 export type RiskLevel = "critical" | "high" | "medium" | "low" | (string & {});
 
 export interface RetrievalOptions {
-  source_chunk_limit: number;
   rule_based_top_k: number;
   per_variant_k: number;
   knn_top_k: number;
@@ -103,7 +102,6 @@ export class ReviewApiError extends Error {
 }
 
 export const DEFAULT_RETRIEVAL_OPTIONS: RetrievalOptions = {
-  source_chunk_limit: 20,
   rule_based_top_k: 50,
   per_variant_k: 20,
   knn_top_k: 50,

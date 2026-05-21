@@ -16,14 +16,12 @@ interface ReviewFormProps {
 }
 
 type NumericRetrievalField =
-  | "source_chunk_limit"
   | "rule_based_top_k"
   | "per_variant_k"
   | "knn_top_k"
   | "merged_top_k";
 
 const NUMERIC_FIELDS: NumericRetrievalField[] = [
-  "source_chunk_limit",
   "rule_based_top_k",
   "per_variant_k",
   "knn_top_k",

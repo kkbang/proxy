@@ -69,7 +69,6 @@ Example request body:
 ```json
 {
   "repo_url": "https://github.com/owner/repo",
-  "source_chunk_limit": 20,
   "rule_based_top_k": 50,
   "per_variant_k": 20,
   "knn_top_k": 50,
