@@ -1,4 +1,4 @@
-export type RiskLevel = "critical" | "high" | "medium" | "low" | (string & {});
+export type ReviewPriorityLevel = "critical" | "high" | "medium";
 
 export interface RetrievalOptions {
   rule_based_top_k: number;
@@ -13,69 +13,80 @@ export interface ReviewRequest extends RetrievalOptions {
   repo_url: string;
 }
 
-export interface ReviewSummary {
+export interface ReviewInterpretation {
+  mode: "review_candidates_not_violation_judgment";
+  disclaimer: string;
+}
+
+export interface ReviewPriorityCounts {
   critical: number;
   high: number;
   medium: number;
+}
+
+export interface ReviewSummary {
+  review_priority_counts: ReviewPriorityCounts;
   sources_with_findings: number;
-  suppressed_low_risk?: number;
+  suppressed_low_priority: number;
   [key: string]: unknown;
 }
 
 export interface ReviewRepository {
-  repo_url: string;
+  repo_url?: string;
   license_spdx?: string | null;
   license_name?: string | null;
   [key: string]: unknown;
 }
 
 export interface ReviewLocation {
-  file_path: string;
+  file_path?: string;
   symbol_name?: string | null;
   [key: string]: unknown;
 }
 
-export interface ReviewRisk {
-  level: RiskLevel;
-  score: number;
+export interface ReviewPriority {
+  level?: ReviewPriorityLevel;
+  score?: number;
   [key: string]: unknown;
 }
 
 export interface MatchedChunk {
-  raw_code: string;
+  raw_code?: string;
   [key: string]: unknown;
 }
 
 export interface ReviewCandidate {
   repository: ReviewRepository;
   location: ReviewLocation;
-  risk: ReviewRisk;
+  review_priority: ReviewPriority;
   matched_chunk: MatchedChunk;
-  matched_by?: string[];
-  match_signal?: string | null;
-  why?: string[];
+  matched_by: string[];
+  primary_match_signal?: string | null;
+  review_reasons: string[];
   [key: string]: unknown;
 }
 
 export interface SourceSnippet {
-  file_path: string;
+  file_path?: string;
   symbol_name?: string | null;
-  raw_code: string;
+  raw_code?: string;
   [key: string]: unknown;
 }
 
 export interface ReviewFinding {
   source: SourceSnippet;
-  top_risk: ReviewRisk;
-  review_candidate_count?: number;
-  additional_review_candidates?: number;
+  top_review_priority: ReviewPriority;
+  review_candidate_count: number;
+  additional_review_candidates: number;
   candidates: ReviewCandidate[];
   [key: string]: unknown;
 }
 
 export interface ReviewResponse {
-  repo_id: string;
-  repo_url: string;
+  report_kind: "license_review_candidate_report";
+  interpretation: ReviewInterpretation;
+  repo_id?: string;
+  repo_url?: string;
   analyzed_source_count: number;
   summary: ReviewSummary;
   limitations?: string[];
@@ -103,10 +114,10 @@ export class ReviewApiError extends Error {
 }
 
 export const DEFAULT_RETRIEVAL_OPTIONS: RetrievalOptions = {
-  rule_based_top_k: 20,
+  rule_based_top_k: 10,
   per_variant_k: 10,
-  knn_top_k: 20,
-  merged_top_k: 40,
+  knn_top_k: 10,
+  merged_top_k: 10,
   include_same_repo: false,
   skip_validation: false,
 };

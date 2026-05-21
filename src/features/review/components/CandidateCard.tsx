@@ -8,7 +8,13 @@ interface CandidateCardProps {
 }
 
 export function CandidateCard({ candidate }: CandidateCardProps) {
-  const candidateRepoUrlValidation = validateGitHubRepoUrl(candidate.repository.repo_url);
+  const candidateRepoUrl = candidate.repository.repo_url;
+  const candidateRepoUrlValidation = candidateRepoUrl
+    ? validateGitHubRepoUrl(candidateRepoUrl)
+    : null;
+  const priorityLevel = candidate.review_priority.level;
+  const priorityScore = candidate.review_priority.score ?? 0;
+  const matchedCode = candidate.matched_chunk.raw_code ?? "No matched code snippet returned.";
 
   return (
     <article className="candidate-card">
@@ -16,7 +22,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         <div>
           <p className="eyebrow">Candidate match</p>
           <h4>
-            {candidateRepoUrlValidation.isValid ? (
+            {candidateRepoUrlValidation?.isValid ? (
               <a
                 href={candidateRepoUrlValidation.normalizedUrl}
                 target="_blank"
@@ -24,19 +30,21 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
               >
                 {candidateRepoUrlValidation.normalizedUrl}
               </a>
-            ) : (
+            ) : candidate.repository.repo_url ? (
               <span className="unsafe-link-text">{candidate.repository.repo_url}</span>
+            ) : (
+              <span className="unsafe-link-text">Unknown repository URL</span>
             )}
           </h4>
-          {!candidateRepoUrlValidation.isValid ? (
+          {candidate.repository.repo_url && !candidateRepoUrlValidation?.isValid ? (
             <p className="unsafe-link-note">
               Link disabled because the backend returned an unverified repository URL.
             </p>
           ) : null}
         </div>
-        <div className={`risk-badge risk-badge--${candidate.risk.level}`}>
-          <span>{formatRiskLabel(candidate.risk.level)}</span>
-          <strong>{candidate.risk.score.toFixed(2)}</strong>
+        <div className={`risk-badge risk-badge--${priorityLevel ?? "unknown"}`}>
+          <span>{formatRiskLabel(priorityLevel)}</span>
+          <strong>{priorityScore.toFixed(2)}</strong>
         </div>
       </header>
 
@@ -50,7 +58,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
         <div>
           <dt>File</dt>
-          <dd>{candidate.location.file_path}</dd>
+          <dd>{candidate.location.file_path ?? "Unknown file path"}</dd>
         </div>
         <div>
           <dt>Symbol</dt>
@@ -58,7 +66,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
         <div>
           <dt>Strongest evidence</dt>
-          <dd>{candidate.match_signal ?? "Unspecified"}</dd>
+          <dd>{candidate.primary_match_signal ?? "Unspecified"}</dd>
         </div>
       </dl>
 
@@ -73,16 +81,16 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
       ) : null}
 
       <ExpandableCodeBlock
-        code={candidate.matched_chunk.raw_code}
+        code={matchedCode}
         label="Matched code snippet"
         previewLines={8}
       />
 
-      {candidate.why?.length ? (
+      {candidate.review_reasons.length ? (
         <div className="reason-list">
           <h5>Why this was flagged</h5>
           <ul>
-            {candidate.why.map((reason) => (
+            {candidate.review_reasons.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>

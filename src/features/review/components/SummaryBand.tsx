@@ -1,11 +1,11 @@
 import { formatRiskLabel } from "../../../lib/risk";
-import type { ReviewResponse, RiskLevel } from "../types";
+import type { ReviewPriorityLevel, ReviewResponse } from "../types";
 
 interface SummaryBandProps {
   response: ReviewResponse;
 }
 
-const SUMMARY_LEVELS: RiskLevel[] = ["critical", "high", "medium"];
+const SUMMARY_LEVELS: ReviewPriorityLevel[] = ["critical", "high", "medium"];
 
 export function SummaryBand({ response }: SummaryBandProps) {
   return (
@@ -13,7 +13,7 @@ export function SummaryBand({ response }: SummaryBandProps) {
       <div className="summary-band__header">
         <div>
           <p className="eyebrow">Run summary</p>
-          <h2>{response.repo_url}</h2>
+          <h2>{response.repo_url ?? response.repo_id ?? "Repository review report"}</h2>
         </div>
         <div className="summary-meta">
           <span>{response.analyzed_source_count} source chunks analyzed</span>
@@ -21,11 +21,13 @@ export function SummaryBand({ response }: SummaryBandProps) {
         </div>
       </div>
 
+      <p className="summary-note">{response.interpretation.disclaimer}</p>
+
       <div className="summary-grid">
         {SUMMARY_LEVELS.map((level) => (
           <article key={level} className={`summary-card summary-card--${level}`}>
             <span className="summary-card__label">{formatRiskLabel(level)}</span>
-            <strong>{response.summary[level] as number}</strong>
+            <strong>{response.summary.review_priority_counts[level]}</strong>
           </article>
         ))}
 
@@ -35,11 +37,10 @@ export function SummaryBand({ response }: SummaryBandProps) {
         </article>
       </div>
 
-      {typeof response.summary.suppressed_low_risk === "number" ? (
-        <p className="summary-note">
-          {response.summary.suppressed_low_risk} low-risk candidates suppressed from the main list.
-        </p>
-      ) : null}
+      <p className="summary-note">
+        {response.summary.suppressed_low_priority} low-priority candidates suppressed from the main
+        list.
+      </p>
 
       {response.limitations?.length ? (
         <div className="limitations-list">

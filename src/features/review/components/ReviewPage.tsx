@@ -24,10 +24,18 @@ const DEFAULT_FORM_VALUES: ReviewFormValues = {
   ...DEFAULT_RETRIEVAL_OPTIONS,
 };
 
+function clampRetrievalOption(value: number) {
+  return Math.min(20, Math.max(1, value));
+}
+
 function buildRequest(values: ReviewFormValues, normalizedRepoUrl: string): ReviewRequest {
   return {
     ...values,
     repo_url: normalizedRepoUrl,
+    rule_based_top_k: clampRetrievalOption(values.rule_based_top_k),
+    per_variant_k: clampRetrievalOption(values.per_variant_k),
+    knn_top_k: clampRetrievalOption(values.knn_top_k),
+    merged_top_k: clampRetrievalOption(values.merged_top_k),
   };
 }
 

@@ -4,6 +4,7 @@ import {
   ReviewApiError,
   type ReviewCandidate,
   type ReviewFinding,
+  type ReviewPriorityLevel,
   type ReviewRequest,
   type ReviewResponse,
 } from "./types";
@@ -23,16 +24,23 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isRiskContainer(value: unknown, field: "top_risk" | "risk") {
+function isPriorityLevel(value: unknown): value is ReviewPriorityLevel {
+  return value === "critical" || value === "high" || value === "medium";
+}
+
+function isPriorityContainer(
+  value: unknown,
+  field: "top_review_priority" | "review_priority",
+) {
   if (!isObject(value)) {
     return false;
   }
 
-  const risk = value[field];
+  const priority = value[field];
   return (
-    isObject(risk) &&
-    typeof risk.level === "string" &&
-    typeof risk.score === "number"
+    isObject(priority) &&
+    (priority.level === undefined || isPriorityLevel(priority.level)) &&
+    (priority.score === undefined || typeof priority.score === "number")
   );
 }
 
@@ -40,12 +48,17 @@ function isCandidate(value: unknown): value is ReviewCandidate {
   return (
     isObject(value) &&
     isObject(value.repository) &&
-    typeof value.repository.repo_url === "string" &&
+    (value.repository.repo_url === undefined || typeof value.repository.repo_url === "string") &&
     isObject(value.location) &&
-    typeof value.location.file_path === "string" &&
+    (value.location.file_path === undefined || typeof value.location.file_path === "string") &&
     isObject(value.matched_chunk) &&
-    typeof value.matched_chunk.raw_code === "string" &&
-    isRiskContainer(value, "risk")
+    (value.matched_chunk.raw_code === undefined ||
+      typeof value.matched_chunk.raw_code === "string") &&
+    Array.isArray(value.matched_by) &&
+    value.matched_by.every((item) => typeof item === "string") &&
+    Array.isArray(value.review_reasons) &&
+    value.review_reasons.every((item) => typeof item === "string") &&
+    isPriorityContainer(value, "review_priority")
   );
 }
 
@@ -53,25 +66,36 @@ function isFinding(value: unknown): value is ReviewFinding {
   return (
     isObject(value) &&
     isObject(value.source) &&
-    typeof value.source.file_path === "string" &&
-    typeof value.source.raw_code === "string" &&
+    (value.source.file_path === undefined || typeof value.source.file_path === "string") &&
+    (value.source.raw_code === undefined || typeof value.source.raw_code === "string") &&
+    typeof value.review_candidate_count === "number" &&
+    typeof value.additional_review_candidates === "number" &&
     Array.isArray(value.candidates) &&
     value.candidates.every(isCandidate) &&
-    isRiskContainer(value, "top_risk")
+    isPriorityContainer(value, "top_review_priority")
   );
 }
 
 function isReviewResponse(value: unknown): value is ReviewResponse {
   return (
     isObject(value) &&
-    typeof value.repo_id === "string" &&
-    typeof value.repo_url === "string" &&
+    value.report_kind === "license_review_candidate_report" &&
+    isObject(value.interpretation) &&
+    value.interpretation.mode === "review_candidates_not_violation_judgment" &&
+    typeof value.interpretation.disclaimer === "string" &&
+    (value.repo_id === undefined || typeof value.repo_id === "string") &&
+    (value.repo_url === undefined || typeof value.repo_url === "string") &&
     typeof value.analyzed_source_count === "number" &&
     isObject(value.summary) &&
-    typeof value.summary.critical === "number" &&
-    typeof value.summary.high === "number" &&
-    typeof value.summary.medium === "number" &&
+    isObject(value.summary.review_priority_counts) &&
+    typeof value.summary.review_priority_counts.critical === "number" &&
+    typeof value.summary.review_priority_counts.high === "number" &&
+    typeof value.summary.review_priority_counts.medium === "number" &&
     typeof value.summary.sources_with_findings === "number" &&
+    typeof value.summary.suppressed_low_priority === "number" &&
+    (value.limitations === undefined ||
+      (Array.isArray(value.limitations) &&
+        value.limitations.every((item) => typeof item === "string"))) &&
     Array.isArray(value.findings) &&
     value.findings.every(isFinding)
   );
@@ -116,7 +140,7 @@ function isBackendMemoryLimitError(message: string) {
 function buildBackendMemoryLimitMessage(request: ReviewRequest, rawMessage: string) {
   return [
     "The backend ran into its memory limit while building retrieval results for this repository.",
-    "Try smaller retrieval settings such as rule_based_top_k 20 or less, knn_top_k 20 or less, per_variant_k 10 or less, and merged_top_k 40 or less.",
+    "Try smaller retrieval settings such as rule_based_top_k 10 or less, knn_top_k 10 or less, per_variant_k 10 or less, and merged_top_k 10 or less.",
     `Current request: rule_based_top_k=${request.rule_based_top_k}, per_variant_k=${request.per_variant_k}, knn_top_k=${request.knn_top_k}, merged_top_k=${request.merged_top_k}.`,
     `Backend detail: ${rawMessage}`,
   ].join(" ");

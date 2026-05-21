@@ -28,6 +28,8 @@ const NUMERIC_FIELDS: NumericRetrievalField[] = [
   "merged_top_k",
 ];
 
+const MAX_RETRIEVAL_PARAMETER = 20;
+
 export function ReviewForm({
   values,
   isLoading,
@@ -85,9 +87,18 @@ export function ReviewForm({
               <input
                 type="number"
                 min={1}
+                max={MAX_RETRIEVAL_PARAMETER}
                 step={1}
                 value={values[field]}
-                onChange={(event) => onChange(field, Number(event.target.value))}
+                onChange={(event) =>
+                  onChange(
+                    field,
+                    Math.min(
+                      MAX_RETRIEVAL_PARAMETER,
+                      Math.max(1, Number(event.target.value) || 1),
+                    ),
+                  )
+                }
               />
             </label>
           ))}

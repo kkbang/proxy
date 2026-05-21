@@ -8,7 +8,7 @@ interface FindingsListProps {
 }
 
 function getFindingKey(finding: ReviewFinding) {
-  return `${finding.source.file_path}:${finding.source.symbol_name ?? "unknown"}`;
+  return `${finding.source.file_path ?? "unknown-file"}:${finding.source.symbol_name ?? "unknown"}`;
 }
 
 export function FindingsList({ findings }: FindingsListProps) {
@@ -65,18 +65,20 @@ export function FindingsList({ findings }: FindingsListProps) {
                     <span className="finding-nav-item__index">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className={`risk-chip risk-chip--${finding.top_risk.level}`}>
-                      {formatRiskLabel(finding.top_risk.level)}
+                    <span className={`risk-chip risk-chip--${finding.top_review_priority.level ?? "unknown"}`}>
+                      {formatRiskLabel(finding.top_review_priority.level)}
                     </span>
                   </div>
-                  <strong className="finding-nav-item__path">{finding.source.file_path}</strong>
+                  <strong className="finding-nav-item__path">
+                    {finding.source.file_path ?? "Unknown file path"}
+                  </strong>
                   <p className="finding-nav-item__meta">
                     {finding.source.symbol_name ?? "Unknown symbol"} ·{" "}
-                    {finding.review_candidate_count ?? finding.candidates.length} candidate
-                    {(finding.review_candidate_count ?? finding.candidates.length) === 1 ? "" : "s"}
+                    {finding.review_candidate_count} candidate
+                    {finding.review_candidate_count === 1 ? "" : "s"}
                   </p>
                   <span className="finding-nav-item__score">
-                    Score {finding.top_risk.score.toFixed(2)}
+                    Score {(finding.top_review_priority.score ?? 0).toFixed(2)}
                   </span>
                 </button>
               );
