@@ -110,6 +110,10 @@ export function ReviewForm({
             <span>Skip backend validation</span>
           </label>
         </div>
+        <p className="field-help advanced-options__note">
+          If the backend reports a memory-limit or circuit-breaker error, lower the top-k values
+          here and retry.
+        </p>
       </details>
     </form>
   );

@@ -103,10 +103,10 @@ export class ReviewApiError extends Error {
 }
 
 export const DEFAULT_RETRIEVAL_OPTIONS: RetrievalOptions = {
-  rule_based_top_k: 50,
-  per_variant_k: 20,
-  knn_top_k: 50,
-  merged_top_k: 100,
+  rule_based_top_k: 20,
+  per_variant_k: 10,
+  knn_top_k: 20,
+  merged_top_k: 40,
   include_same_repo: false,
   skip_validation: false,
 };

@@ -211,6 +211,10 @@ input {
   font-size: 0.94rem;
 }
 
+.advanced-options__note {
+  margin-top: 14px;
+}
+
 .checkbox-field {
   display: flex;
   align-items: center;

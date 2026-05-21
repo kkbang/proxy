@@ -105,6 +105,23 @@ async function parseError(response: Response) {
   return text || `Request failed with status ${response.status}.`;
 }
 
+function isBackendMemoryLimitError(message: string) {
+  return (
+    message.includes("circuit_breaking_exception") ||
+    message.includes("Data too large") ||
+    message.includes("TransportError(429")
+  );
+}
+
+function buildBackendMemoryLimitMessage(request: ReviewRequest, rawMessage: string) {
+  return [
+    "The backend ran into its memory limit while building retrieval results for this repository.",
+    "Try smaller retrieval settings such as rule_based_top_k 20 or less, knn_top_k 20 or less, per_variant_k 10 or less, and merged_top_k 40 or less.",
+    `Current request: rule_based_top_k=${request.rule_based_top_k}, per_variant_k=${request.per_variant_k}, knn_top_k=${request.knn_top_k}, merged_top_k=${request.merged_top_k}.`,
+    `Backend detail: ${rawMessage}`,
+  ].join(" ");
+}
+
 export async function fetchReviewByRepoUrl(
   request: ReviewRequest,
   options?: { signal?: AbortSignal },
@@ -145,6 +162,14 @@ export async function fetchReviewByRepoUrl(
 
   if (!response.ok) {
     const message = await parseError(response);
+
+    if (response.status === 429 && isBackendMemoryLimitError(message)) {
+      throw new ReviewApiError(
+        "backend",
+        buildBackendMemoryLimitMessage(sanitizedRequest, message),
+        response.status,
+      );
+    }
 
     if (response.status === 404) {
       throw new ReviewApiError(

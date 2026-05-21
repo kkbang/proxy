@@ -124,6 +124,8 @@ export function ReviewPage() {
             ? "API configuration error"
             : error.kind === "validation"
             ? "Backend validation error"
+            : error.kind === "backend" && error.status === 429
+              ? "Backend resource limit reached"
             : error.kind === "malformed-response"
               ? "Malformed response error"
               : error.kind === "network"
