@@ -406,6 +406,15 @@ input {
   color: var(--text-muted);
 }
 
+.code-block-wrapper,
+.code-details,
+.candidate-list,
+.candidate-card,
+.code-block {
+  width: 100%;
+  min-width: 0;
+}
+
 .candidate-list {
   display: grid;
   gap: 18px;
@@ -517,9 +526,17 @@ input {
 .finding-detail-scroll {
   min-height: 0;
   overflow: auto;
+  overflow-x: hidden;
   padding-right: 4px;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.finding-detail-scroll .code-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow-x: hidden;
 }
 
 .risk-chip {
@@ -609,6 +626,10 @@ input {
 .code-block-wrapper,
 .code-details {
   margin-top: 18px;
+}
+
+.code-details {
+  display: block;
 }
 
 .code-block-label {
