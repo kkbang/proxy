@@ -84,6 +84,8 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         code={matchedCode}
         label="Matched code snippet"
         previewLines={8}
+        defaultExpanded
+        toggleMode="show-hide"
       />
 
       {candidate.review_reasons.length ? (

@@ -1,10 +1,11 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 
 interface ExpandableCodeBlockProps {
   code: string;
   label: string;
   previewLines?: number;
   defaultExpanded?: boolean;
+  toggleMode?: "line-count" | "show-hide";
 }
 
 export function ExpandableCodeBlock({
@@ -12,9 +13,11 @@ export function ExpandableCodeBlock({
   label,
   previewLines = 10,
   defaultExpanded = false,
+  toggleMode = "line-count",
 }: ExpandableCodeBlockProps) {
   const lineCount = code.split("\n").length;
   const blockId = useId();
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
 
   if (lineCount <= previewLines) {
     return (
@@ -28,10 +31,21 @@ export function ExpandableCodeBlock({
   }
 
   return (
-    <details className="code-details" open={defaultExpanded}>
+    <details
+      className="code-details"
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+    >
       <summary>
         <span>{label}</span>
-        <span>{lineCount} lines</span>
+        {toggleMode === "show-hide" ? (
+          <span className={`code-toggle code-toggle--${isOpen ? "open" : "closed"}`}>
+            <span className="code-toggle__knob" aria-hidden="true" />
+            <span className="code-toggle__label">{isOpen ? "Hide" : "Show"}</span>
+          </span>
+        ) : (
+          <span>{lineCount} lines</span>
+        )}
       </summary>
       <pre id={blockId} className="code-block">
         <code>{code}</code>
