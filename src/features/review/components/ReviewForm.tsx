@@ -46,7 +46,7 @@ export function ReviewForm({
             name="repo_url"
             type="url"
             inputMode="url"
-            placeholder="https://github.com/owner/repo"
+            placeholder="https://github.com/acme/telescope"
             value={values.repo_url}
             aria-invalid={Boolean(repoUrlError)}
             aria-describedby={repoUrlError ? "repo_url_help repo_url_error" : "repo_url_help"}

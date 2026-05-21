@@ -20,7 +20,7 @@ type ViewState =
   | { status: "error"; title: string; detail: string };
 
 const DEFAULT_FORM_VALUES: ReviewFormValues = {
-  repo_url: "https://github.com/acme/internal-query-engine",
+  repo_url: "https://github.com/acme/telescope",
   ...DEFAULT_RETRIEVAL_OPTIONS,
 };
 

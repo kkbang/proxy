@@ -1,4 +1,4 @@
 window.__APP_CONFIG__ = {
-  apiBaseUrl: "http://ngseo-ubuntu:18000",
+  apiBaseUrl: "/api",
   ...(window.__APP_CONFIG__ ?? {}),
 };

@@ -16,20 +16,7 @@ function getApiBaseUrl() {
   }
 
   const configured = import.meta.env.VITE_API_BASE_URL?.trim();
-  return configured ? configured.replace(/\/$/, "") : "";
-}
-
-function getRequiredApiBaseUrl() {
-  const baseUrl = getApiBaseUrl();
-
-  if (!baseUrl) {
-    throw new ReviewApiError(
-      "configuration",
-      "API base URL is not configured. Set window.__APP_CONFIG__.apiBaseUrl in /runtime-config.js or set VITE_API_BASE_URL before building or starting the frontend.",
-    );
-  }
-
-  return baseUrl;
+  return configured ? configured.replace(/\/$/, "") : "/api";
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -132,7 +119,7 @@ export async function fetchReviewByRepoUrl(
     ...request,
     repo_url: repoUrlValidation.normalizedUrl,
   };
-  const endpoint = `${getRequiredApiBaseUrl()}/retrieve/hybrid/by-repo-url`;
+  const endpoint = `${getApiBaseUrl()}/retrieve/hybrid/by-repo-url`;
 
   let response: Response;
 
@@ -152,7 +139,7 @@ export async function fetchReviewByRepoUrl(
 
     throw new ReviewApiError(
       "network",
-      "The review request could not reach the backend. Check that the API server is running and VITE_API_BASE_URL is set correctly.",
+      "The review request could not reach the backend. Check that the /api proxy is configured and the backend server is reachable from the frontend host.",
     );
   }
 
@@ -162,7 +149,7 @@ export async function fetchReviewByRepoUrl(
     if (response.status === 404) {
       throw new ReviewApiError(
         "backend",
-        `Backend endpoint not found (404): POST ${response.url || endpoint}. The API host is reachable, but this route does not exist there. Verify VITE_API_BASE_URL and confirm the backend exposes /retrieve/hybrid/by-repo-url.`,
+        `Backend endpoint not found (404): POST ${response.url || endpoint}. Verify that /api is proxying to the backend and that the backend exposes /retrieve/hybrid/by-repo-url.`,
         response.status,
       );
     }
