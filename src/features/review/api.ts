@@ -2,6 +2,7 @@ import { sortCandidatesByRisk, sortFindingsByRisk } from "../../lib/risk";
 import { validateGitHubRepoUrl } from "./repoUrl";
 import {
   ReviewApiError,
+  type ErrorResponse,
   type ReviewCandidate,
   type ReviewFinding,
   type ReviewPriorityLevel,
@@ -44,6 +45,14 @@ function isPriorityContainer(
   );
 }
 
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalNumber(value: unknown): value is number | undefined {
+  return value === undefined || typeof value === "number";
+}
+
 function isCandidate(value: unknown): value is ReviewCandidate {
   return (
     isObject(value) &&
@@ -76,6 +85,39 @@ function isFinding(value: unknown): value is ReviewFinding {
   );
 }
 
+function isSlowestChunkTiming(value: unknown) {
+  return (
+    isObject(value) &&
+    isOptionalString(value.source_chunk_id) &&
+    isOptionalString(value.file_path) &&
+    isOptionalString(value.symbol_name) &&
+    isOptionalNumber(value.total_seconds) &&
+    isOptionalNumber(value.rule_based_seconds) &&
+    isOptionalNumber(value.knn_seconds) &&
+    isOptionalNumber(value.merge_seconds)
+  );
+}
+
+function isRequestTimings(value: unknown) {
+  return (
+    isObject(value) &&
+    typeof value.total_seconds === "number" &&
+    isObject(value.prepare_local_query_repo) &&
+    typeof value.prepare_local_query_repo.total_seconds === "number" &&
+    typeof value.prepare_local_query_repo.download_snapshot_seconds === "number" &&
+    typeof value.prepare_local_query_repo.chunk_source_chunks_seconds === "number" &&
+    typeof value.prepare_local_query_repo.precompute_embeddings_seconds === "number" &&
+    isObject(value.retrieve_hybrid_candidates) &&
+    typeof value.retrieve_hybrid_candidates.total_seconds === "number" &&
+    typeof value.retrieve_hybrid_candidates.source_chunk_count === "number" &&
+    typeof value.retrieve_hybrid_candidates.aggregate_chunk_seconds === "number" &&
+    typeof value.retrieve_hybrid_candidates.average_chunk_seconds === "number" &&
+    isSlowestChunkTiming(value.retrieve_hybrid_candidates.slowest_chunk) &&
+    isObject(value.build_user_facing_payload) &&
+    typeof value.build_user_facing_payload.total_seconds === "number"
+  );
+}
+
 function isReviewResponse(value: unknown): value is ReviewResponse {
   return (
     isObject(value) &&
@@ -96,6 +138,7 @@ function isReviewResponse(value: unknown): value is ReviewResponse {
     (value.limitations === undefined ||
       (Array.isArray(value.limitations) &&
         value.limitations.every((item) => typeof item === "string"))) &&
+    isRequestTimings(value.timings) &&
     Array.isArray(value.findings) &&
     value.findings.every(isFinding)
   );
@@ -115,7 +158,7 @@ async function parseError(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
 
   if (contentType.includes("application/json")) {
-    const body = (await response.json()) as Record<string, unknown>;
+    const body = (await response.json()) as ErrorResponse & Record<string, unknown>;
     const detail =
       typeof body.detail === "string"
         ? body.detail
@@ -144,6 +187,10 @@ function buildBackendMemoryLimitMessage(request: ReviewRequest, rawMessage: stri
     `Current request: rule_based_top_k=${request.rule_based_top_k}, per_variant_k=${request.per_variant_k}, knn_top_k=${request.knn_top_k}, merged_top_k=${request.merged_top_k}.`,
     `Backend detail: ${rawMessage}`,
   ].join(" ");
+}
+
+function isRateLimitMessage(message: string) {
+  return message.toLowerCase().includes("rate limit exceeded");
 }
 
 export async function fetchReviewByRepoUrl(
@@ -187,7 +234,7 @@ export async function fetchReviewByRepoUrl(
   if (!response.ok) {
     const message = await parseError(response);
 
-    if (response.status === 429 && isBackendMemoryLimitError(message)) {
+    if ((response.status === 429 || response.status === 500) && isBackendMemoryLimitError(message)) {
       throw new ReviewApiError(
         "backend",
         buildBackendMemoryLimitMessage(sanitizedRequest, message),
@@ -201,6 +248,10 @@ export async function fetchReviewByRepoUrl(
         `Backend endpoint not found (404): POST ${response.url || endpoint}. Verify that /api is proxying to the backend and that the backend exposes /retrieve/hybrid/by-repo-url.`,
         response.status,
       );
+    }
+
+    if (response.status === 429 && isRateLimitMessage(message)) {
+      throw new ReviewApiError("backend", message, response.status);
     }
 
     const kind = response.status >= 400 && response.status < 500 ? "validation" : "backend";

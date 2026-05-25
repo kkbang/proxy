@@ -55,6 +55,60 @@ function getEmptyStateMessage(response: ReviewResponse) {
   };
 }
 
+function getErrorTitle(error: ReviewApiError) {
+  if (error.kind === "configuration") {
+    return "API configuration error";
+  }
+
+  if (error.kind === "malformed-response") {
+    return "Malformed response error";
+  }
+
+  if (error.kind === "network") {
+    return "Network error";
+  }
+
+  if (error.status === 400) {
+    return "Backend validation error";
+  }
+
+  if (error.status === 404) {
+    return "Resource not found";
+  }
+
+  if (error.status === 413) {
+    return "Request too large";
+  }
+
+  if (error.status === 415) {
+    return "Unsupported content type";
+  }
+
+  if (error.status === 429) {
+    return error.message.includes("memory limit")
+      ? "Backend resource limit reached"
+      : "Rate limit exceeded";
+  }
+
+  if (error.status === 503) {
+    return "Backend busy";
+  }
+
+  if (error.status === 500 && error.message.includes("memory limit")) {
+    return "Backend resource limit reached";
+  }
+
+  if (error.status === 500) {
+    return "Backend internal error";
+  }
+
+  if (error.kind === "validation") {
+    return "Backend validation error";
+  }
+
+  return "Backend request failed";
+}
+
 export function ReviewPage() {
   const [formValues, setFormValues] = useState<ReviewFormValues>(DEFAULT_FORM_VALUES);
   const [viewState, setViewState] = useState<ViewState>({ status: "idle" });
@@ -127,22 +181,9 @@ export function ReviewPage() {
       });
     } catch (error) {
       if (error instanceof ReviewApiError) {
-        const title =
-          error.kind === "configuration"
-            ? "API configuration error"
-            : error.kind === "validation"
-            ? "Backend validation error"
-            : error.kind === "backend" && error.status === 429
-              ? "Backend resource limit reached"
-            : error.kind === "malformed-response"
-              ? "Malformed response error"
-              : error.kind === "network"
-                ? "Network error"
-                : "Backend request failed";
-
         setViewState({
           status: "error",
-          title,
+          title: getErrorTitle(error),
           detail: error.message,
         });
         return;

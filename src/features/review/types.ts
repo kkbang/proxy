@@ -82,6 +82,40 @@ export interface ReviewFinding {
   [key: string]: unknown;
 }
 
+export interface SlowestChunkTiming {
+  source_chunk_id?: string;
+  file_path?: string;
+  symbol_name?: string;
+  total_seconds?: number;
+  rule_based_seconds?: number;
+  knn_seconds?: number;
+  merge_seconds?: number;
+}
+
+export interface PrepareLocalQueryRepoTimings {
+  total_seconds: number;
+  download_snapshot_seconds: number;
+  chunk_source_chunks_seconds: number;
+  precompute_embeddings_seconds: number;
+}
+
+export interface RetrieveHybridCandidatesTimings {
+  total_seconds: number;
+  source_chunk_count: number;
+  aggregate_chunk_seconds: number;
+  average_chunk_seconds: number;
+  slowest_chunk: SlowestChunkTiming | Record<string, never>;
+}
+
+export interface RequestTimings {
+  total_seconds: number;
+  prepare_local_query_repo: PrepareLocalQueryRepoTimings;
+  retrieve_hybrid_candidates: RetrieveHybridCandidatesTimings;
+  build_user_facing_payload: {
+    total_seconds: number;
+  };
+}
+
 export interface ReviewResponse {
   report_kind: "license_review_candidate_report";
   interpretation: ReviewInterpretation;
@@ -91,8 +125,15 @@ export interface ReviewResponse {
   summary: ReviewSummary;
   limitations?: string[];
   findings: ReviewFinding[];
+  timings: RequestTimings;
   [key: string]: unknown;
 }
+
+export interface ErrorResponse {
+  detail: string;
+}
+
+export type RetrieveByRepoUrlResponse = ReviewResponse | ErrorResponse;
 
 export type ReviewErrorKind =
   | "configuration"
